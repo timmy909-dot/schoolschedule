@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <title>학교 일정 알리미</title>
+    <style>
+        table, th, td {
+            border: 1px solid #66ccff; /* 테두리 푸른색 */
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px 20px;
+            text-align: center;
+            color: #000f9a;
+        }
+        .table-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 50px;
+        }
+        .schedule th {
+            background-color: #66ccff; /* 헤더 밝은 파랑 */
+        }
+        .schedule td {
+            background-color: #e6f7ff; /* 셀 배경 연한 파랑 */
+        }
+        .eat {
+            width: 500px;
+        }
+        .eat th {
+            background-color: #66ccff;
+            color: white;
+        }
+        .eat td {
+    background-color: #f0f8ff;
+    height: 100px;
+    white-space: nowrap;
+}
+/* 반응형 디자인*/
+@media (max-width:768px){
+
+    .table-container{
+        flex-direction:column;
+        align-items:center;
+    }
+
+    .table-scroll{
+        width:100%;
+        overflow-x:auto;
+    }
+
+    .schedule{
+        min-width:700px;
+    }
+
+    .eat{
+        min-width:500px;
+        margin-top:20px;
+    }
+}
+
+/*메뉴 스타일*/
+.menu{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:15px;
+    margin:25px 0;
+    flex-wrap:wrap;
+}
+/*메뉴 제목 스타일*/
+h1{
+    text-align:center;
+    margin-top:20px;
+    margin-bottom:20px;
+}
+/*전체 너비 제한*/
+.all{
+    max-width:1400px;
+    margin:auto;
+    padding:20px;
+}
+/*body 여백 제거*/
+body{
+    margin:0;
+}
+/*테이블 컨테이너 스타일*/
+.table-container{
+    display:flex;
+    align-items:flex-start;
+    gap:50px;
+}
+/*전체 스타일*/
+.all{
+    max-width:1400px;
+    margin:auto;
+    padding:20px;
+}
+
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div class="all">
+
+<h1>학교 알리미</h1>
+
+<div class="menu">
+
+<label>학교 선택</label>
+<select id="school">
+    <option value="옥정" selected>옥정중학교</option>
+    <option value="금릉">금릉중학교</option>
+    <option value="향산">향산중학교</option>
+    <option value="신곡">신곡중학교</option>
+    <option value="탄현">탄현중학교</option>
+</select>
+
+<label>학년 선택</label>
+<select id="grade">
+    <option value="1" selected>1학년</option>
+    <option value="2">2학년</option>
+    <option value="3">3학년</option>
+</select>
+
+<label>반 선택</label>
+<select id="class"></select>
+
+</div>
+
+<div class="table-container">
+<div class="table-scroll">
+    <table class="schedule">
+        <tr>
+            <th></th>
+            <th>월요일</th>
+            <th>화요일</th>
+            <th>수요일</th>
+            <th>목요일</th>
+            <th>금요일</th>
+        </tr>
+        <tbody id="schedule-body"></tbody>
+    </table>
+    </div>
+    <table class="eat">
+        <tr>
+            <th>날짜</th>
+            <td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        <tr>
+            <th>급식</th>
+            <td></td><td></td><td></td><td></td><td></td>
+        </tr>
+    </table>
+</div>
+</div>
+
+<!-- 노트 작성 기능 -->
+
+<div style="margin-top:20px;">
+    <h3>my note</h3>
+    <input type="text" id="noteInput"
+           placeholder="환상적인 내용을 적어보세요"
+           style="width:300px;">
+    <button onclick="addNote()">추가</button>
+    <ul id="noteList"></ul>
+</div>
+
+<script>
+// =========================
+// NEIS API 설정
+// =========================
+
+
+const schoolInfo = {
+
+    "옥정": {
+        office: "J10",
+        code: "7602133",
+        classes: [15, 12, 11]
+    },
+
+    "금릉": {
+        office: "J10",
+        code: "7681003",
+        classes: [8, 9, 9]
+    },
+
+    "향산": {
+        office: "J10",
+        code: "7771191",
+        classes: [7, 5, 4]
+    },
+
+    "신곡": {
+        office: "J10",
+        code: "7561008",
+        classes: [10, 9, 8]
+    },
+
+    "탄현": {
+        office: "J10",
+        code: "7681010",
+        classes: [3, 3, 3]
+    }
+
+};
+
+// =========================
+// HTML 요소
+// =========================
+
+const schoolSelect = document.getElementById("school");
+const gradeSelect = document.getElementById("grade");
+const classSelect = document.getElementById("class");
+const scheduleBody = document.getElementById("schedule-body");
+
+// =========================
+// 시간표 생성
+// =========================
+
+function createScheduleTable(periods = 7){
+
+    scheduleBody.innerHTML="";
+
+    for(let i=1;i<=periods;i++){
+
+        const row=document.createElement("tr");
+
+        row.innerHTML=`
+            <th>${i}교시</th>
+            <td id="mon${i}"></td>
+            <td id="tue${i}"></td>
+            <td id="wed${i}"></td>
+            <td id="thu${i}"></td>
+            <td id="fri${i}"></td>
+        `;
+
+        scheduleBody.appendChild(row);
+
+    }
+
+}
+
+// =========================
+// 이번주 월~금 날짜 구하기
+// =========================
+
+function getWeekDates(){
+
+    const today=new Date();
+
+    const day=today.getDay();
+
+    const monday=new Date(today);
+
+    monday.setDate(today.getDate()-(day===0?6:day-1));
+
+    const result=[];
+
+    for(let i=0;i<5;i++){
+
+        const d=new Date(monday);
+
+        d.setDate(monday.getDate()+i);
+
+        const y=d.getFullYear();
+
+        const m=String(d.getMonth()+1).padStart(2,"0");
+
+        const dd=String(d.getDate()).padStart(2,"0");
+
+        result.push(`${y}${m}${dd}`);
+
+    }
+
+    return result;
+
+}
+
+// =========================
+// NEIS에서 시간표 불러오기
+// =========================
+
+async function loadTimetable(){
+
+    createScheduleTable();
+
+    const school=schoolSelect.value;
+    const grade=gradeSelect.value;
+    const cls=classSelect.value;
+
+    const office=schoolInfo[school].office;
+    const schoolCode=schoolInfo[school].code;
+
+    const week=getWeekDates();
+
+// 급식표에 날짜 표시
+const dateCells = document.querySelectorAll(".eat tr:first-child td");
+
+week.forEach((date, index) => {
+    const month = date.substring(4, 6);
+    const day = date.substring(6, 8);
+
+    dateCells[index].textContent = `${month}/${day}`;
+});
+
+    const days=["mon","tue","wed","thu","fri"];
+
+    for(let d=0;d<5;d++){
+
+        const url=
+  `https://tiny-unit-2067.gunyul8177.workers.dev/?office=${office}&school=${schoolCode}&grade=${grade}&class=${cls}&date=${week[d]}`;
+        try{
+
+            const response=await fetch(url);
+
+            const data=await response.json();
+
+            if(!data.misTimetable) continue;
+
+            const rows=data.misTimetable[1].row;
+
+            rows.forEach(item=>{
+
+                const period=item.PERIO;
+
+                const subject=item.ITRT_CNTNT;
+
+                const cell=document.getElementById(days[d]+period);
+
+                if(cell){
+
+                    cell.textContent=subject;
+
+                }
+
+            });
+
+        }catch(e){
+
+            console.log(e);
+
+        }
+
+    }
+highlightTodayAndCurrentClass();
+}
+
+// =========================
+// 현재 요일 / 현재 교시 하이라이트
+// =========================
+
+function highlightTodayAndCurrentClass() {
+
+    const now = new Date();
+
+    const dayNames = ["sun","mon","tue","wed","thu","fri","sat"];
+    const today = dayNames[now.getDay()];
+
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+
+    const classTimes = [
+        {start:[9,0], end:[9,45]},
+        {start:[9,55], end:[10,40]},
+        {start:[10,50], end:[11,35]},
+        {start:[11,45], end:[12,30]},
+        {start:[13,20], end:[14,5]},
+        {start:[14,15], end:[15,0]},
+        {start:[15,10], end:[15,55]}
+    ];
+
+    // 오늘 요일 강조
+    for (let i = 1; i <= 7; i++) {
+
+        const cell = document.getElementById(`${today}${i}`);
+
+        if (cell) {
+            cell.style.backgroundColor = "#FFFF00";
+        }
+
+    }
+
+    // 현재 교시 강조
+    const nowMinutes = hour * 60 + minute;
+
+    classTimes.forEach((time, idx) => {
+
+        const startMinutes = time.start[0] * 60 + time.start[1];
+        const endMinutes = time.end[0] * 60 + time.end[1];
+
+        if (nowMinutes >= startMinutes && nowMinutes <= endMinutes) {
+
+            const cell = document.getElementById(`${today}${idx + 1}`);
+
+            if (cell) {
+                cell.style.backgroundColor = "#ADFF2F";
+                cell.style.fontWeight = "bold";
+            }
+
+        }
+
+    });
+
+}
+
+setInterval(highlightTodayAndCurrentClass, 60000);
+
+// =========================
+// 반 목록
+// =========================
+
+function updateClass(){ 
+
+    const school = schoolSelect.value; 
+    const grade = Number(gradeSelect.value); 
+
+    const info = schoolInfo[school]; 
+
+    if(!info){ 
+        console.error("학교 정보를 찾을 수 없습니다."); 
+        return; 
+    } 
+
+    const classCount = info.classes[grade - 1]; 
+
+    classSelect.innerHTML = ""; 
+
+    for(let i = 1; i <= classCount; i++){ 
+
+        const option = document.createElement("option"); 
+
+        option.value = i; 
+        option.textContent = i + "반"; 
+
+        classSelect.appendChild(option); 
+
+    } 
+
+}
+// =========================
+// 이벤트
+// =========================
+
+schoolSelect.addEventListener("change",()=>{
+
+    updateClass();
+
+    loadTimetable();
+
+});
+
+gradeSelect.addEventListener("change",()=>{
+
+    updateClass();
+
+    loadTimetable();
+
+});
+
+classSelect.addEventListener("change",loadTimetable);
+
+// =========================
+// 시작
+// =========================
+
+updateClass();
+
+loadTimetable();
+
+
+
+// 저장된 노트 불러오기
+function loadNotes() {
+    const saved = localStorage.getItem("notes");
+    if (!saved) return;
+    const notes = JSON.parse(saved);
+    notes.forEach(text => {
+        createNoteElement(text);
+    });
+}
+
+// 금지되는 욕설 목록
+const bannedWords = [ "○레기", "ㄴㄷㅆ", "간나", "간나새끼", "간새", "갈보", "개", "개간나", "개놈", "개년", "개돼지", "개불", "개새끼", "개소리", "개쓰레기", "개씹", "개자식", "개지랄", "개차반", "개판", "거랭이", "거렁뱅이", "거지", "거지새끼", "걸레", "걸뱅이", "게이", "경을 칠 놈", "고아", "고자", "광녀", "광년이", "괴뢰", "괴뢰군", "귓것", "그지깽깽이", "그짝", "급식충", "김치남", "김치녀", "깝치다", "깝쳐", "깜둥이", "꺼벙이", "꺼져", "꼬라보다", "꼬붕", "꼰대", "꼴불견", "꼴통", "끈끈아", "끈끈이", "나가 뒤져", "나가 죽어", "남창", "냄비", "냄져", "너검엄빠", "논다니", "놈", "눈 깔아", "느개비", "느금마", "니거", "니기미", "니미", "니미 씨발", "니미뽕", "니미럴", "니애미", "니애비", "닥쳐", "당나귀 사촌", "덜떨어지다", "되놈", "두루애", "두창", "뒈지다", "뇌절", "땡중", "땡추", "딸딸이 부대", "딸피", "따까리", "띨빡", "띨빵", "띨띨이", "루저", "렉카충", "로리콘", "망나니", "망할", "맘충", "말하는 가축", "매국노", "머저리", "먹사", "멍청도", "멍청이", "메갈리아", "메롱", "메퇘지", "멧돼지", "모자라다", "모지리", "몹쓸", "몽근놈의 자식", "무뇌", "무뇌아", "무뇌봉", "무뇌충", "미제", "미친개", "미친놈", "미친년", "미친새끼", "바보", "반푼이", "반쪽바리", "반쪽발이", "박쥐", "박쥐같은 새끼", "박쥐짓", "밴댕이 소갈딱지", "버러지", "버팔로", "벌레", "병신", "보빨러", "보슬아치", "보지", "보지년", "보전깨", "보추", "부모가 홀수", "불알", "불한당", "비틱", "빌어먹을", "빠가", "빠구리", "빠돼쌍", "빡대가리", "빡통", "빡추", "빨갱이", "빨통", "빻다", "뻐큐", "삐꾸", "사이코", "사이버 렉카", "상폐녀", "상판대기", "상판때기", "삼엽충", "새대가리", "새끼", "새쓰개", "석녀", "설명충", "쇼타콘", "수전노", "솔개", "쇠똥구리", "십장생", "쌍간나", "쌍놈", "쌍년", "쌍욕", "썅", "썩을", "쓰레기", "씨댕", "씨발", "씨방새", "씨부랄", "씨팔", "씹", "씹구멍", "씹년", "씹덕", "씹새끼", "씹쓰레기", "씹지랄", "씹창", "씹치남", "아가리", "아다", "애비충", "애새끼", "애자", "앱등이", "야리다", "양공주", "양놈", "양반", "언년이", "얼간이", "어저미", "엠생", "엠창", "엠창인생", "여편네", "엿", "열폭", "염병", "옘병", "옌장", "오랑캐", "오스트랄로피테쿠스", "오유충", "외퀴", "왜놈", "우라질", "운지", "워마드", "유아틱", "유아퇴행", "유인원", "육갑떨다", "육갑하다", "육변기", "육시랄", "이완용", "인마", "임마", "일베충", "자지", "자지새끼", "잡놈", "잡년", "잡종", "장궤", "장뚜룸", "장애인", "재기해", "재수 없다", "저능아", "정박아", "정신병자", "제길", "제기랄", "젖", "좆", "좆간나", "좆같다", "좆같네", "좆까", "좆도 아닌 새끼", "좆대가리", "좆만이", "좆밥", "좆빨러", "좆심", "좆집", "좆물", "존나", "주둥아리", "주둥이", "쥐새끼", "지기미", "지끼미", "지랄", "지미", "짜져 있어", "짱깨", "짱꼴라", "째져 있어", "쩌리", "쪼다", "쪽발이", "찌질이", "찌랭이", "찐", "찐따", "찐찌버거", "창남", "창녀", "창년", "창놈", "철면피", "처먹다", "촛불좀비", "추남", "추녀", "코쟁이", "코흘리개", "통구이드립", "토착빨갱이", "토착왜구", "토착짱깨", "트롤", "튀기", "틀", "틀딱", "파쇼", "폐급", "폐녀자", "폐인", "피싸개", "한남", "한남충", "한녀", "한녀충", "허섭스레기", "허접", "허접쓰레기", "호구", "호로", "호모", "호랑말코", "홍어", "화냥년", "환향녀", "후레자식", "후빨", "후장빨개", "흑돼지", "흑형" ]
+
+// 노트 추가 (욕설 입력 막기 적용)
+function addNote() {
+    const input = document.getElementById("noteInput");
+    const noteText = input.value.trim();
+    if (noteText === "") return;
+
+    // 욕설 검사
+    if (bannedWords.some(word => noteText.includes(word))) {
+        alert("⚠️ 입력할 수 없는 표현이 포함되어 있습니다.상대방을 배려하는 표현으로 다시 작성해 주세요. 😊")
+        input.value = ""; // 입력창 비우기
+        return; // 저장 및 추가 중단
+    }
+
+    createNoteElement(noteText);
+    saveNotes();
+    input.value = "";
+}
+
+// 노트 요소 생성
+function createNoteElement(text) {
+    const li = document.createElement("li");
+    li.textContent = text;
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "삭제";
+    delBtn.style.marginLeft = "10px";
+    delBtn.onclick = function() {
+        li.remove();
+        saveNotes();
+    };
+
+    li.appendChild(delBtn);
+    document.getElementById("noteList").appendChild(li);
+}
+
+// 노트 저장
+function saveNotes() {
+    const items = document.querySelectorAll("#noteList li");
+    const notes = [];
+    items.forEach(li => {
+        // 버튼 텍스트 제외하고 노트 내용만 저장
+        notes.push(li.firstChild.textContent);
+    });
+    localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+// 페이지 로드 시 저장된 노트 불러오기
+window.onload = loadNotes;
+
+</script>
+</body>
+</html>
